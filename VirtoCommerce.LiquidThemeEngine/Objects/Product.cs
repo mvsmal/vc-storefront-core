@@ -46,7 +46,7 @@ namespace VirtoCommerce.LiquidThemeEngine.Objects
          /// </summary>
         [DataMember]
         public bool Buyable { get; set; }
-  
+
         /// <summary>
         ///  Returns true if a product is instock
         /// </summary>
@@ -100,16 +100,20 @@ namespace VirtoCommerce.LiquidThemeEngine.Objects
         /// </summary>
         public Descriptions Descriptions { get; set; }
 
+        public bool CustomerReviewModuleAvailable { get; set; }
+        [DataMember]
+        public CustomerReview[] CustomerReviews { get; set; }
+
         /// <summary>
-        /// The main product image 
+        /// The main product image
         /// </summary>
         [DataMember]
         public Image FeaturedImage { get; set; }
 
         /// <summary>
-        /// Returns the variant object of the first product variant that is available for purchase. 
+        /// Returns the variant object of the first product variant that is available for purchase.
         /// In order for a variant to be available, its variant.inventory_quantity must be greater than zero or
-        /// variant.inventory_policy must be set to continue. 
+        /// variant.inventory_policy must be set to continue.
         /// A variant with no inventory_policy is considered available.
         /// </summary>
         [DataMember]
@@ -237,7 +241,7 @@ namespace VirtoCommerce.LiquidThemeEngine.Objects
         public IList<ProductProperty> Properties { get; set; }
 
         /// <summary>
-        /// Returns the vendor of the product. 
+        /// Returns the vendor of the product.
         /// </summary>
         [DataMember]
         public Vendor Vendor { get; set; }

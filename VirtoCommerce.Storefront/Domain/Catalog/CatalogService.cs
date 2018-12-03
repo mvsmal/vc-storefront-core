@@ -15,7 +15,10 @@ using VirtoCommerce.Storefront.Model.Catalog;
 using VirtoCommerce.Storefront.Model.Common;
 using VirtoCommerce.Storefront.Model.Common.Caching;
 using VirtoCommerce.Storefront.Model.Customer.Services;
+using VirtoCommerce.Storefront.Model.CustomerReviews;
+using VirtoCommerce.Storefront.Model.CustomerReviews.Services;
 using VirtoCommerce.Storefront.Model.Inventory.Services;
+using VirtoCommerce.Storefront.Model.Modules.Services;
 using VirtoCommerce.Storefront.Model.Pricing.Services;
 using VirtoCommerce.Storefront.Model.Services;
 using VirtoCommerce.Storefront.Model.Subscriptions.Services;
@@ -28,18 +31,22 @@ namespace VirtoCommerce.Storefront.Domain
         private readonly ICatalogModuleCategories _categoriesApi;
         private readonly ICatalogModuleProducts _productsApi;
         private readonly ICatalogModuleSearch _searchApi;
+        private readonly ICustomerReviewService _customerReviewService;
         private readonly IPricingService _pricingService;
         private readonly IMemberService _customerService;
         private readonly ISubscriptionService _subscriptionService;
         private readonly IInventoryService _inventoryService;
         private readonly IStorefrontMemoryCache _memoryCache;
         private readonly IApiChangesWatcher _apiChangesWatcher;
+        private readonly IModulesService _modulesService;
 
         public CatalogService(IWorkContextAccessor workContextAccessor, ICatalogModuleCategories categoriesApi,
             ICatalogModuleProducts productsApi,
             ICatalogModuleSearch searchApi, IPricingService pricingService, IMemberService customerService,
             ISubscriptionService subscriptionService,
-            IInventoryService inventoryService, IStorefrontMemoryCache memoryCache, IApiChangesWatcher changesWatcher)
+            ICustomerReviewService customerReviewService,
+            IInventoryService inventoryService, IStorefrontMemoryCache memoryCache, IApiChangesWatcher changesWatcher,
+            IModulesService modulesService)
         {
             _workContextAccessor = workContextAccessor;
             _categoriesApi = categoriesApi;
@@ -49,9 +56,11 @@ namespace VirtoCommerce.Storefront.Domain
             _pricingService = pricingService;
             _inventoryService = inventoryService;
             _customerService = customerService;
+            _customerReviewService = customerReviewService;
             _subscriptionService = subscriptionService;
             _memoryCache = memoryCache;
             _apiChangesWatcher = changesWatcher;
+            _modulesService = modulesService;
         }
 
         #region ICatalogSearchService Members
@@ -107,6 +116,8 @@ namespace VirtoCommerce.Storefront.Domain
                         taskList.Add(LoadProductPaymentPlanAsync(allProducts, workContext));
                     }
 
+                    taskList.Add(LoadProductCustomerReviewsAsync(allProducts, workContext));
+
                     await Task.WhenAll(taskList.ToArray());
 
                     foreach (var product in allProducts)
@@ -137,13 +148,13 @@ namespace VirtoCommerce.Storefront.Domain
                 return await _categoriesApi.GetCategoriesByPlentyIdsAsync(ids.ToList(), ((int)responseGroup).ToString());
             });
             var result = categoriesDto.Select(x => x.ToCategory(workContext.CurrentLanguage, workContext.CurrentStore)).ToArray();
-            //Set  lazy loading for child categories 
+            //Set  lazy loading for child categories
             EstablishLazyDependenciesForCategories(result);
             return result;
         }
 
         /// <summary>
-        /// Search categories by given criteria 
+        /// Search categories by given criteria
         /// </summary>
         /// <param name="criteria"></param>
         /// <returns></returns>
@@ -154,7 +165,7 @@ namespace VirtoCommerce.Storefront.Domain
         }
 
         /// <summary>
-        /// Async search categories by given criteria 
+        /// Async search categories by given criteria
         /// </summary>
         /// <param name="criteria"></param>
         /// <returns></returns>
@@ -178,13 +189,13 @@ namespace VirtoCommerce.Storefront.Domain
             {
                 result = new PagedList<Category>(searchResult.Items.Select(x => x.ToCategory(workContext.CurrentLanguage, workContext.CurrentStore)).AsQueryable(), criteria.PageNumber, criteria.PageSize);
             }
-            //Set  lazy loading for child categories 
+            //Set  lazy loading for child categories
             EstablishLazyDependenciesForCategories(result.ToArray());
             return result;
         }
 
         /// <summary>
-        /// Search products by given criteria 
+        /// Search products by given criteria
         /// </summary>
         /// <param name="criteria"></param>
         /// <returns></returns>
@@ -194,7 +205,7 @@ namespace VirtoCommerce.Storefront.Domain
         }
 
         /// <summary>
-        /// Async search products by given criteria 
+        /// Async search products by given criteria
         /// </summary>
         /// <param name="criteria"></param>
         /// <returns></returns>
@@ -326,7 +337,7 @@ namespace VirtoCommerce.Storefront.Domain
 
             foreach (var product in products)
             {
-                //Associations 
+                //Associations
                 product.Associations = new MutablePagedList<ProductAssociation>((pageNumber, pageSize, sortInfos, @params) =>
                 {
                     var criteria = new ProductAssociationSearchCriteria
@@ -366,6 +377,35 @@ namespace VirtoCommerce.Storefront.Domain
             return Task.CompletedTask;
         }
 
+        protected virtual async Task LoadProductCustomerReviewsAsync(IEnumerable<Product> products, WorkContext workContext)
+        {
+            if (products == null)
+            {
+                throw new ArgumentNullException(nameof(products));
+            }
+
+            if (await _modulesService.GetModuleAsync("CustomerReviews.Web") == null)// TODO Move id to one place and use like enum
+            {
+                return;
+            }
+
+            foreach (var product in products)
+            {
+                product.CustomerReviewModuleAvailable = true;
+                product.CustomerReviews = new MutablePagedList<Model.CustomerReviews.CustomerReview>(
+                    (pageNumber, pageSize, sortInfos) =>
+                    {
+                        var criteria = new CustomerReviewSearchCriteria
+                        {
+                            ProductIds = new[] {product.Id},
+                            PageNumber = pageNumber,
+                            PageSize = pageSize,
+                            Sort = SortInfo.ToString(sortInfos)
+                        };
+                        return _customerReviewService.SearchReviews(criteria);
+                    }, 1, CustomerReviewSearchCriteria.DefaultPageSize);
+            }
+        }
         protected virtual void EstablishLazyDependenciesForCategories(IEnumerable<Category> categories)
         {
             if (categories == null)

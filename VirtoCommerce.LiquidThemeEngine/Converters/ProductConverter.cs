@@ -77,6 +77,9 @@ namespace VirtoCommerce.LiquidThemeEngine.Converters
                 Type = d.ReviewType
             }));
 
+            result.CustomerReviewModuleAvailable = product.CustomerReviewModuleAvailable;
+            result.CustomerReviews = product.CustomerReviews?.Select(CustomerReviewConverter.ToShopifyModel).ToArray();
+
             result.FeaturedImage = product.PrimaryImage?.ToShopifyModel();
 
             if (result.FeaturedImage != null)
