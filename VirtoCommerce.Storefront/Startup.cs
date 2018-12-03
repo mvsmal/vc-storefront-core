@@ -25,6 +25,8 @@ using VirtoCommerce.Storefront.Caching;
 using VirtoCommerce.Storefront.DependencyInjection;
 using VirtoCommerce.Storefront.Domain;
 using VirtoCommerce.Storefront.Domain.Cart;
+using VirtoCommerce.Storefront.Domain.CustomerReview;
+using VirtoCommerce.Storefront.Domain.Modules;
 using VirtoCommerce.Storefront.Domain.Security;
 using VirtoCommerce.Storefront.Extensions;
 using VirtoCommerce.Storefront.Infrastructure;
@@ -38,9 +40,11 @@ using VirtoCommerce.Storefront.Model.Common;
 using VirtoCommerce.Storefront.Model.Common.Bus;
 using VirtoCommerce.Storefront.Model.Common.Events;
 using VirtoCommerce.Storefront.Model.Customer.Services;
+using VirtoCommerce.Storefront.Model.CustomerReviews.Services;
 using VirtoCommerce.Storefront.Model.Inventory.Services;
 using VirtoCommerce.Storefront.Model.LinkList.Services;
 using VirtoCommerce.Storefront.Model.Marketing.Services;
+using VirtoCommerce.Storefront.Model.Modules.Services;
 using VirtoCommerce.Storefront.Model.Order.Services;
 using VirtoCommerce.Storefront.Model.Pricing.Services;
 using VirtoCommerce.Storefront.Model.Quote.Services;
@@ -84,6 +88,7 @@ namespace VirtoCommerce.Storefront
             services.AddSingleton<IUrlBuilder, UrlBuilder>();
             services.AddSingleton<IStorefrontUrlBuilder, StorefrontUrlBuilder>();
 
+            services.AddSingleton<IModulesService, ModulesService>();
             services.AddSingleton<IStoreService, StoreService>();
             services.AddSingleton<ICurrencyService, CurrencyService>();
             services.AddSingleton<ISlugRouteService, SlugRouteService>();
@@ -92,6 +97,7 @@ namespace VirtoCommerce.Storefront
             services.AddSingleton<IQuoteService, QuoteService>();
             services.AddSingleton<ISubscriptionService, SubscriptionService>();
             services.AddSingleton<ICatalogService, CatalogService>();
+            services.AddSingleton<ICustomerReviewService, CustomerReviewService>();
             services.AddSingleton<IInventoryService, InventoryService>();
             services.AddSingleton<IPricingService, PricingService>();
             services.AddSingleton<ITaxEvaluator, TaxEvaluator>();
@@ -163,9 +169,9 @@ namespace VirtoCommerce.Storefront
             services.AddSingleton<IAuthorizationHandler, CanImpersonateAuthorizationHandler>();
             services.AddSingleton<IAuthorizationHandler, CanReadContentItemAuthorizationHandler>();
             services.AddSingleton<IAuthorizationHandler, OnlyRegisteredUserAuthorizationHandler>();
-            // register the AuthorizationPolicyProvider which dynamically registers authorization policies for each permission defined in the platform 
+            // register the AuthorizationPolicyProvider which dynamically registers authorization policies for each permission defined in the platform
             services.AddSingleton<IAuthorizationPolicyProvider, PermissionAuthorizationPolicyProvider>();
-            //Storefront authorization handler for policy based on permissions 
+            //Storefront authorization handler for policy based on permissions
             services.AddSingleton<IAuthorizationHandler, PermissionAuthorizationHandler>();
             services.AddSingleton<IAuthorizationHandler, CanEditOrganizationResourceAuthorizationHandler>();
             services.AddAuthorization(options =>
@@ -309,7 +315,7 @@ namespace VirtoCommerce.Storefront
                 app.UseExceptionHandler("/error/500");
                 app.UseHsts();
             }
-            //Do not write telemetry to debug output 
+            //Do not write telemetry to debug output
             TelemetryDebugWriter.IsTracingDisabled = true;
 
             app.UseResponseCaching();
